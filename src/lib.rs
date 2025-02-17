@@ -83,21 +83,22 @@ impl PySufrBuilderArgs {
 }
 
 #[pyclass]
+#[derive(Clone)]
 pub struct PyCountOptions {
     count_options: CountOptions
 }
 
-impl Clone for PyCountOptions {
-    fn clone(&self) -> Self {
-        PyCountOptions {
-            count_options: CountOptions {
-                queries: self.count_options.queries.clone(),
-                max_query_len: self.count_options.max_query_len.clone(),
-                low_memory: self.count_options.low_memory.clone(),
-            }
-        }
-    }
-}
+//impl Clone for PyCountOptions {
+//    fn clone(&self) -> Self {
+//        PyCountOptions {
+//            count_options: CountOptions {
+//                queries: self.count_options.queries.clone(),
+//                max_query_len: self.count_options.max_query_len.clone(),
+//                low_memory: self.count_options.low_memory.clone(),
+//            }
+//        }
+//    }
+//}
 
 #[pymethods]
 impl PyCountOptions {
@@ -138,10 +139,9 @@ pub struct PySuffixArray {
     suffix_array: SuffixArray
 }
 
-unsafe impl Send for PySuffixArray {}
-unsafe impl Sync for PySuffixArray {}
-
-
+// preempted by 0.7.7
+// unsafe impl Send for PySuffixArray {}
+// unsafe impl Sync for PySuffixArray {}
 
 #[pymethods]
 impl PySuffixArray {

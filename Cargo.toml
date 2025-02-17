@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 regex = "1.10.6"
 anyhow = "1.0.86"
-libsufr = "0.7.6"
+libsufr = "0.7.7"
 pyo3 = "0.23.1"
