@@ -1,0 +1,2 @@
+import _pylibsufr
+print(_pylibsufr.PySuffixArray)

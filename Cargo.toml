@@ -1,0 +1,15 @@
+[package]
+name = "pylibsufr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "_pylibsufr"
+crate-type = ["cdylib"]
+
+[dependencies]
+regex = "1.10.6"
+anyhow = "1.0.86"
+libsufr = "0.7.6"
+pyo3 = "0.23.1"
