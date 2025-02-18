@@ -2,11 +2,14 @@ use pyo3::prelude::*;
 use libsufr::{
     suffix_array::SuffixArray,
     types::{
-        SufrBuilderArgs, SequenceFileData, CountOptions, CountResult
+        SufrBuilderArgs, SequenceFileData, SearchOptions, CountOptions, ExtractOptions, ListOptions, LocateOptions
     },
     util::read_sequence_file,
 };
-use std::path::Path;
+use std::{
+    path::Path,
+    ops::Range,
+};
 
 #[pyclass]
 pub struct PySequenceFileData {
@@ -88,18 +91,6 @@ pub struct PyCountOptions {
     count_options: CountOptions
 }
 
-//impl Clone for PyCountOptions {
-//    fn clone(&self) -> Self {
-//        PyCountOptions {
-//            count_options: CountOptions {
-//                queries: self.count_options.queries.clone(),
-//                max_query_len: self.count_options.max_query_len.clone(),
-//                low_memory: self.count_options.low_memory.clone(),
-//            }
-//        }
-//    }
-//}
-
 #[pymethods]
 impl PyCountOptions {
     #[new]
@@ -135,13 +126,85 @@ pub struct PyCountResult {
 }
 
 #[pyclass]
+#[derive(Clone)]
+pub struct PyExtractOptions {
+    extract_options: ExtractOptions
+}
+
+#[pymethods]
+impl PyExtractOptions {
+    #[new]
+    #[pyo3(signature = (queries, max_query_len, low_memory, prefix_len, suffix_len))]
+    pub fn new(
+        queries: Vec<String>, 
+        max_query_len: Option<usize>,
+        low_memory: bool,
+        prefix_len: Option<usize>,
+        suffix_len: Option<usize>,
+    ) -> PyResult<PyExtractOptions> {
+        Ok(PyExtractOptions {
+            extract_options: ExtractOptions {
+                queries: queries,
+                max_query_len: max_query_len,
+                low_memory: low_memory,
+                prefix_len: prefix_len,
+                suffix_len: suffix_len,
+            }
+        })
+    }
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PyExtractResult {
+    /// The ordinal position of the original query
+    #[pyo3(get)]
+    pub query_num: usize,
+
+    /// The query string
+    #[pyo3(get)]
+    pub query: String,
+
+    /// Number of times a query was found
+    #[pyo3(get)]
+    pub sequences: Vec<PyExtractSequence>,
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PyExtractSequence {
+    /// The position of the suffix in the suffix array
+    #[pyo3(get)]
+    pub suffix: usize,
+
+    /// The rank of the suffix in the suffix array
+    #[pyo3(get)]
+    pub rank: usize,
+
+    /// The name of the sequence containing a query hit
+    #[pyo3(get)]
+    pub sequence_name: String,
+
+    /// The start/offset of the containing sequence in the full `text`
+    #[pyo3(get)]
+    pub sequence_start: usize,
+
+    /// The hit's relative start/stop range inside the sequence
+    /// including the prefix/suffix lengths shown
+    #[pyo3(get)]
+    pub sequence_range: (usize, usize),
+
+    /// The query hit's start position from the beginning of the shown context
+    /// E.g., if the user requested a prefix of 10, then this value will be
+    /// between 0-10, depending on the location of the hit inside the sequence.
+    #[pyo3(get)]
+    pub suffix_offset: usize,
+}
+
+#[pyclass]
 pub struct PySuffixArray {
     suffix_array: SuffixArray
 }
-
-// preempted by 0.7.7
-// unsafe impl Send for PySuffixArray {}
-// unsafe impl Sync for PySuffixArray {}
 
 #[pymethods]
 impl PySuffixArray {
@@ -172,9 +235,25 @@ impl PySuffixArray {
             .collect()
         )
     }
-    // pub fn extract(&mut self, args: PyExtractOptions) -> PyResult<Vec<PyExtractResult>> {
-    //     Ok(self.suffix_array.extract(args.extract_options).unwrap())
-    // }
+    pub fn extract(&mut self, args: PyExtractOptions) -> PyResult<Vec<PyExtractResult>> {
+        Ok(self.suffix_array.extract(args.extract_options)
+            .unwrap()
+            .iter()
+            .map(|extract_result| PyExtractResult {
+                query_num: extract_result.query_num.clone(),
+                query: extract_result.query.clone(),
+                sequences: extract_result.sequences.iter().map(|extract_sequence| PyExtractSequence {
+                    suffix: extract_sequence.suffix.clone(),
+                    rank: extract_sequence.rank.clone(),
+                    sequence_name: extract_sequence.sequence_name.clone(),
+                    sequence_start: extract_sequence.sequence_start.clone(),
+                    sequence_range: (extract_sequence.sequence_range.start, extract_sequence.sequence_range.end),
+                    suffix_offset: extract_sequence.suffix_offset.clone(),
+                }).collect(),
+            })
+            .collect()
+        )
+    }
     // pub fn metadata(&self) -> Result<PySufrMetadata> {
     //     Ok(self.suffix_array.metadata().unwrap())
     // }
@@ -195,6 +274,9 @@ fn _pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_read_sequence_file, m)?)?;
     m.add_class::<PyCountResult>()?;
     m.add_class::<PyCountOptions>()?;
+    m.add_class::<PyExtractResult>()?;
+    m.add_class::<PyExtractSequence>()?;
+    m.add_class::<PyExtractOptions>()?;
     m.add_class::<PySufrBuilderArgs>()?;
     m.add_class::<PySuffixArray>()?;
     Ok(())

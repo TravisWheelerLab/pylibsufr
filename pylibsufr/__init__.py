@@ -18,6 +18,7 @@ def test_create_and_count(input_file: str, output_file: str, queries: list[str])
         None, 
         42)
     suffix_array = _pylibsufr.PySuffixArray(sufr_builder_args)
+    # counting
     count_options = _pylibsufr.PyCountOptions(
         queries,
         None,
@@ -26,3 +27,14 @@ def test_create_and_count(input_file: str, output_file: str, queries: list[str])
     count_results = suffix_array.count(count_options)
     for res in count_results:
         print(res.query_num, res.query, res.count)
+    # extracting
+    extract_options = _pylibsufr.PyExtractOptions(
+        queries,
+        None,
+        False,
+        None,
+        None
+    )
+    extract_results = suffix_array.extract(extract_options)
+    for res in extract_results:
+        print(res.query_num, res.query, [(seq.suffix, seq.rank, seq.sequence_name, seq.sequence_start, seq.sequence_range, seq.suffix_offset) for seq in res.sequences])
