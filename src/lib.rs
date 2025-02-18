@@ -2,10 +2,11 @@ use pyo3::prelude::*;
 use libsufr::{
     suffix_array::SuffixArray,
     types::{
-        SufrBuilderArgs, SequenceFileData, SearchOptions, CountOptions, ExtractOptions, ListOptions, LocateOptions
+        SufrBuilderArgs, SequenceFileData, SearchOptions, CountOptions, ExtractOptions, ListOptions, LocateOptions, SuffixSortType
     },
     util::read_sequence_file,
 };
+use chrono::{DateTime, Local};
 use std::{
     path::Path,
     ops::Range,
@@ -112,15 +113,12 @@ impl PyCountOptions {
 
 #[pyclass]
 pub struct PyCountResult {
-    /// The ordinal position of the original query
     #[pyo3(get)]
     pub query_num: usize,
 
-    /// The query string
     #[pyo3(get)]
     pub query: String,
 
-    /// Number of times a query was found
     #[pyo3(get)]
     pub count: usize,
 }
@@ -157,15 +155,12 @@ impl PyExtractOptions {
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PyExtractResult {
-    /// The ordinal position of the original query
     #[pyo3(get)]
     pub query_num: usize,
 
-    /// The query string
     #[pyo3(get)]
     pub query: String,
 
-    /// Number of times a query was found
     #[pyo3(get)]
     pub sequences: Vec<PyExtractSequence>,
 }
@@ -173,32 +168,153 @@ pub struct PyExtractResult {
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PyExtractSequence {
-    /// The position of the suffix in the suffix array
     #[pyo3(get)]
     pub suffix: usize,
 
-    /// The rank of the suffix in the suffix array
     #[pyo3(get)]
     pub rank: usize,
 
-    /// The name of the sequence containing a query hit
     #[pyo3(get)]
     pub sequence_name: String,
 
-    /// The start/offset of the containing sequence in the full `text`
     #[pyo3(get)]
     pub sequence_start: usize,
 
-    /// The hit's relative start/stop range inside the sequence
-    /// including the prefix/suffix lengths shown
     #[pyo3(get)]
     pub sequence_range: (usize, usize),
 
-    /// The query hit's start position from the beginning of the shown context
-    /// E.g., if the user requested a prefix of 10, then this value will be
-    /// between 0-10, depending on the location of the hit inside the sequence.
     #[pyo3(get)]
     pub suffix_offset: usize,
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct PyListOptions {
+    list_options: ListOptions
+}
+
+#[pymethods]
+impl PyListOptions {
+    #[new]
+    #[pyo3(signature = (ranks, show_rank, show_suffix, show_lcp, len, number, output))]
+    pub fn new(
+        ranks: Vec<usize>,
+        show_rank: bool,
+        show_suffix: bool,
+        show_lcp: bool,
+        len: Option<usize>,
+        number: Option<usize>,
+        output: Option<String>,
+    ) -> PyResult<PyListOptions> {
+        Ok(PyListOptions {
+            list_options: ListOptions {
+                ranks: ranks,
+                show_rank: show_rank,
+                show_suffix: show_suffix,
+                show_lcp: show_lcp,
+                len: len,
+                number: number,
+                output: output,
+            }
+        })
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct PyLocateOptions {
+    locate_options: LocateOptions
+}
+
+#[pymethods]
+impl PyLocateOptions {
+    #[new]
+    #[pyo3(signature = (queries, max_query_len, low_memory))]
+    pub fn new(
+        queries: Vec<String>,
+        max_query_len: Option<usize>,
+        low_memory: bool,
+    ) -> PyResult<PyLocateOptions> {
+        Ok(PyLocateOptions{
+            locate_options: LocateOptions {
+                queries: queries,
+                max_query_len: max_query_len,
+                low_memory: low_memory,
+            }
+        })
+    }
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PyLocateResult {
+    #[pyo3(get)]
+    pub query_num: usize,
+
+    #[pyo3(get)]
+    pub query: String,
+
+    #[pyo3(get)]
+    pub positions: Vec<PyLocatePosition>,
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PyLocatePosition {
+    #[pyo3(get)]
+    pub suffix: usize,
+
+    #[pyo3(get)]
+    pub rank: usize,
+
+    #[pyo3(get)]
+    pub sequence_name: String,
+
+    #[pyo3(get)]
+    pub sequence_position: usize,
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PySufrMetadata {
+    #[pyo3(get)]
+    pub filename: String,
+
+    #[pyo3(get)]
+    pub modified: String,
+
+    #[pyo3(get)]
+    pub file_size: usize,
+
+    #[pyo3(get)]
+    pub file_version: usize,
+
+    #[pyo3(get)]
+    pub is_dna: bool,
+
+    #[pyo3(get)]
+    pub allow_ambiguity: bool,
+
+    #[pyo3(get)]
+    pub ignore_softmask: bool,
+
+    #[pyo3(get)]
+    pub text_len: usize,
+
+    #[pyo3(get)]
+    pub len_suffixes: usize,
+
+    #[pyo3(get)]
+    pub num_sequences: usize,
+
+    #[pyo3(get)]
+    pub sequence_starts: Vec<usize>,
+
+    #[pyo3(get)]
+    pub sequence_names: Vec<String>,
+
+    #[pyo3(get)]
+    pub sort_type: String,
 }
 
 #[pyclass]
@@ -213,9 +329,6 @@ impl PySuffixArray {
         let low_memory = args.sufr_builder_args.low_memory;
         let path = SuffixArray::write(args.sufr_builder_args).unwrap();
         Self::read(path, low_memory)
-        //Ok(PySuffixArray {
-        //    suffix_array: SuffixArray::read(&path, low_memory).unwrap()
-        //})
     }
     #[staticmethod]
     pub fn read(filename: String, low_memory: bool) -> PyResult<PySuffixArray> {
@@ -228,9 +341,9 @@ impl PySuffixArray {
             .unwrap()
             .iter()
             .map(|count_result| PyCountResult {
-                query_num: count_result.query_num.clone(),
-                query: count_result.query.clone(),
-                count: count_result.count.clone(),
+                query_num:  count_result.query_num.clone(),
+                query:      count_result.query.clone(),
+                count:      count_result.count.clone(),
             })
             .collect()
         )
@@ -240,34 +353,62 @@ impl PySuffixArray {
             .unwrap()
             .iter()
             .map(|extract_result| PyExtractResult {
-                query_num: extract_result.query_num.clone(),
-                query: extract_result.query.clone(),
-                sequences: extract_result.sequences.iter().map(|extract_sequence| PyExtractSequence {
-                    suffix: extract_sequence.suffix.clone(),
-                    rank: extract_sequence.rank.clone(),
-                    sequence_name: extract_sequence.sequence_name.clone(),
+                query_num:      extract_result.query_num.clone(),
+                query:          extract_result.query.clone(),
+                sequences:      extract_result.sequences.iter().map(|extract_sequence| PyExtractSequence {
+                    suffix:         extract_sequence.suffix.clone(),
+                    rank:           extract_sequence.rank.clone(),
+                    sequence_name:  extract_sequence.sequence_name.clone(),
                     sequence_start: extract_sequence.sequence_start.clone(),
                     sequence_range: (extract_sequence.sequence_range.start, extract_sequence.sequence_range.end),
-                    suffix_offset: extract_sequence.suffix_offset.clone(),
+                    suffix_offset:  extract_sequence.suffix_offset.clone(),
                 }).collect(),
             })
             .collect()
         )
     }
-    // pub fn metadata(&self) -> Result<PySufrMetadata> {
-    //     Ok(self.suffix_array.metadata().unwrap())
-    // }
-    // pub fn list(&mut self, args: PyListOptions) -> PyResult<()> {
-    //     Ok(self.suffix_array.list(args.list_options).unwrap())
-    // }
-    // pub fn locate(&mut self, args: PyLocateOptions) -> PyResult<Vec<PyLocateResult>> {
-    //     Ok(self.suffix_array.locate(args.locate_options).unwrap())
-    // }
-    // pub fn string_at(&mut self, pos: usize, len: Option<usize>) -> PyResult<String> {
-    //     Ok(self.suffix_array.string_at(pos, len).unwrap())
-    // }
+    pub fn list(&mut self, args: PyListOptions) -> PyResult<()> {
+        Ok(self.suffix_array.list(args.list_options).unwrap())
+    }
+    pub fn locate(&mut self, args: PyLocateOptions) -> PyResult<Vec<PyLocateResult>> {
+        Ok(self.suffix_array.locate(args.locate_options)
+            .unwrap()
+            .iter()
+            .map(|locate_result| PyLocateResult {
+                query_num:  locate_result.query_num.clone(),
+                query:      locate_result.query.clone(),
+                positions:  locate_result.positions.iter().map(|locate_position| PyLocatePosition {
+                    suffix:             locate_position.suffix.clone(),
+                    rank:               locate_position.rank.clone(),
+                    sequence_name:      locate_position.sequence_name.clone(),
+                    sequence_position:  locate_position.sequence_position.clone(),
+                }).collect(),
+            })
+            .collect()
+        )
+    }
+    pub fn metadata(&self) -> PyResult<PySufrMetadata> {
+        let metadata = self.suffix_array.metadata().unwrap();
+        Ok(PySufrMetadata {
+            filename:           metadata.filename.clone(),
+            modified:           metadata.modified.to_string(),
+            file_size:          metadata.file_size.clone(),
+            file_version:       metadata.file_version.clone(),
+            is_dna:             metadata.is_dna.clone(),
+            allow_ambiguity:    metadata.allow_ambiguity.clone(),
+            ignore_softmask:    metadata.ignore_softmask.clone(),
+            text_len:           metadata.text_len.clone(),
+            len_suffixes:       metadata.len_suffixes.clone(),
+            num_sequences:      metadata.num_sequences.clone(),
+            sequence_starts:    metadata.sequence_starts.clone(),
+            sequence_names:     metadata.sequence_names.clone(),
+            sort_type:          format!("{:?}", metadata.sort_type),
+        })
+    }
+    pub fn string_at(&mut self, pos: usize, len: Option<usize>) -> PyResult<String> {
+        Ok(self.suffix_array.string_at(pos, len).unwrap())
+    }
 }
-
 
 #[pymodule]
 fn _pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -277,80 +418,12 @@ fn _pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyExtractResult>()?;
     m.add_class::<PyExtractSequence>()?;
     m.add_class::<PyExtractOptions>()?;
+    m.add_class::<PyListOptions>()?;
+    m.add_class::<PyLocateResult>()?;
+    m.add_class::<PyLocatePosition>()?;
+    m.add_class::<PyLocateOptions>()?;
+    m.add_class::<PySufrMetadata>()?;
     m.add_class::<PySufrBuilderArgs>()?;
     m.add_class::<PySuffixArray>()?;
     Ok(())
 }
-//use anyhow::Result;
-//use libsufr::{
-//    suffix_array::SuffixArray,
-//    types::{
-//        CountOptions, ExtractOptions, ListOptions, LocateOptions, SuffixSortType,
-//        SufrBuilderArgs,
-//    },
-//    util::read_sequence_file,
-//};
-//use regex::Regex;
-//use std::{
-//    ffi::OsStr,
-//    fmt::Debug,
-//    fs::{self, File},
-//    io::{self, Write},
-//    ops::Range,
-//    path::{Path, PathBuf},
-//    time::Instant,
-//    iter::zip,
-//    sync::Mutex,
-//};
-//
-//fn parse_locate_queries(queries: &[String]) -> Result<Vec<String>> {
-//    let whitespace = Regex::new(r"\s+").unwrap();
-//    let mut ret = vec![];
-//    for query in queries {
-//        if Path::new(&query).exists() {
-//            let contents = fs::read_to_string(query)?;
-//            let mut vals: Vec<String> = whitespace
-//                .split(&contents)
-//                .filter(|v| !v.is_empty())
-//                .map(|v| v.to_string())
-//                .collect();
-//            ret.append(&mut vals);
-//        } else {
-//            ret.push(query.to_string());
-//        }
-//    }
-//
-//    Ok(ret)
-//}
-
-
-// 
-// #[pyclass]
-// pub struct PyExtractOptions {
-//     extract_options: ExtractOptions
-// }
-// 
-// #[pyclass]
-// pub struct PyListOptions {
-//     list_options: ListOptions
-// }
-// 
-// #[pyclass]
-// pub struct PyLocateOptions {
-//     locate_options: LocateOptions
-// }
-// 
-// #[pyclass]
-// pub struct PyExtractResult {
-//     extract_result: ExtractResult
-// }
-// 
-// #[pyclass]
-// pub struct PySufrMetadata {
-//     sufr_metadata: SufrMetadata
-// }
-// 
-// #[pyclass]
-// pub struct PyLocateResult {
-//     locate_result: LocateResult
-// }
