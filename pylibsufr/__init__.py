@@ -1,38 +1,30 @@
-import _pylibsufr
+from _pylibsufr import *
 from sys import stdout
 
-TEST_INPUT = "test.fa"
-TEST_OUTPUT = "_test.sufr"
-TEST_QUERIES = ["TT", "GATT", "ATTA", "ACTG"]
-TEST_LIST_OUTPUT = "test.list"
-EXPECTED_COUNT_DATA = [3,2,3,2]
-EXPECTED_EXTRACT_DATA = [
-    [(27, 27, '4', 25, (2, 33), 0), (2, 28, '1', 0, (2, 8), 0), (11, 29, '2', 8, (3, 16), 0)],
-    [(25, 20, '4', 25, (0, 33), 0), (0, 21, '1', 0, (0, 8), 0)],
-    [(26, 9, '4', 25, (1, 33), 0), (1, 10, '1', 0, (1, 8), 0), (10, 11, '2', 8, (2, 16), 0)],
-    [(20, 6, '3', 16, (4, 25), 0), (16, 7, '3', 16, (0, 25), 0)],
-]
-EXPECTED_LOCATE_DATA = [
-    [(27, 27, '4', 2), (2, 28, '1', 2), (11, 29, '2', 3)], 
-    [(25, 20, '4', 0), (0, 21, '1', 0)], 
-    [(26, 9, '4', 1), (1, 10, '1', 1), (10, 11, '2', 2)], 
-    [(20, 6, '3', 4), (16, 7, '3', 0)]
-]
-
 def test(
-    input_file: str = TEST_INPUT, 
-    output_file: str = TEST_OUTPUT, 
-    queries: list[str] = TEST_QUERIES, 
-    list_output_file: str = TEST_LIST_OUTPUT,
-    expected_count_data: list[int] = EXPECTED_COUNT_DATA,
-    expected_extract_data: list[list] = EXPECTED_EXTRACT_DATA,
-    expected_locate_data: list[list] = EXPECTED_LOCATE_DATA,
+    input_file: str = "test.fa", 
+    output_file: str = "_test.sufr", 
+    queries: list[str] = ["TT", "GATT", "ATTA", "ACTG"], 
+    list_output_file: str = "test.list",
+    expected_count_data: list[int] = [3,2,3,2],
+    expected_extract_data: list[list] = [
+        [(27, 27, '4', 25, (2, 33), 0), (2, 28, '1', 0, (2, 8), 0), (11, 29, '2', 8, (3, 16), 0)],
+        [(25, 20, '4', 25, (0, 33), 0), (0, 21, '1', 0, (0, 8), 0)],
+        [(26, 9, '4', 25, (1, 33), 0), (1, 10, '1', 0, (1, 8), 0), (10, 11, '2', 8, (2, 16), 0)],
+        [(20, 6, '3', 16, (4, 25), 0), (16, 7, '3', 16, (0, 25), 0)],
+    ],
+    expected_locate_data: list[list] = [
+        [(27, 27, '4', 2), (2, 28, '1', 2), (11, 29, '2', 3)], 
+        [(25, 20, '4', 0), (0, 21, '1', 0)], 
+        [(26, 9, '4', 1), (1, 10, '1', 1), (10, 11, '2', 2)], 
+        [(20, 6, '3', 4), (16, 7, '3', 0)]
+    ],
 ):
     # creating the suffix array
-    sequence_file_data = _pylibsufr.py_read_sequence_file(
+    sequence_file_data = py_read_sequence_file(
         input_file, 
         ord('%'))
-    sufr_builder_args = _pylibsufr.PySufrBuilderArgs(
+    sufr_builder_args = PySufrBuilderArgs(
         sequence_file_data.seq(), 
         output_file, 
         False, 
@@ -46,10 +38,10 @@ def test(
         None, 
         42,
     )
-    suffix_array = _pylibsufr.PySuffixArray(sufr_builder_args)
+    suffix_array = PySuffixArray(sufr_builder_args)
 
     # listing; only works if it's the first operation done to the suffix array?
-    list_options = _pylibsufr.PyListOptions(
+    list_options = PyListOptions(
         [],
         True,
         True,
@@ -63,7 +55,7 @@ def test(
         print(f"list_results: {f.read()}")
 
     # counting
-    count_options = _pylibsufr.PyCountOptions(
+    count_options = PyCountOptions(
         queries,
         None,
         False,
@@ -73,7 +65,7 @@ def test(
     assert count_data == expected_count_data
 
     # extracting
-    extract_options = _pylibsufr.PyExtractOptions(
+    extract_options = PyExtractOptions(
         queries,
         None,
         False,
@@ -85,7 +77,7 @@ def test(
     assert extract_data == expected_extract_data
 
     # locating
-    locate_options = _pylibsufr.PyLocateOptions(
+    locate_options = PyLocateOptions(
         queries,
         None,
         False,
@@ -97,14 +89,20 @@ def test(
     # metadata
     metadata = suffix_array.metadata()
     metadata_attrs = dir(metadata)[-13:]
-    metadata_vals = [metadata.filename, metadata.modified, metadata.file_size, metadata.file_version, metadata.is_dna, metadata.allow_ambiguity, metadata.ignore_softmask, metadata.text_len, metadata.len_suffixes, metadata.num_sequences, metadata.sequence_starts, metadata.sequence_names, metadata.sort_type]
-    for kvp in map(lambda x: f"{x[0]}:{x[1]}", zip(metadata_attrs, metadata_vals)):
-        print(kvp)
+    for attr in metadata_attrs:
+        val = getattr(metadata, attr)
+        print(f"{attr}: {val}")
 
-    # string_at
-    for res in locate_results:
-        print(f"{res.query_num} {res.query}")
-        for pos in res.positions:
-            idx = pos.sequence_position
-            seq = suffix_array.string_at(idx, None)
-            print(f"\t{idx} {seq}")
+    # listing; only works if it's the first operation done to the suffix array?
+    list_options = PyListOptions(
+        [],
+        True,
+        True,
+        True,
+        None,
+        None,
+        list_output_file,
+    )
+    suffix_array.list(list_options)
+    with open(list_output_file, 'r') as f:
+        print(f"list_results: (second time) {f.read()}")
