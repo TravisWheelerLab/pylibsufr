@@ -1,5 +1,15 @@
-from _pylibsufr import *
+from pylibsufr.pylibsufr import *
+#from pylibsufr import py_read_sequence_file, PyCountResult, PyCountOptions, PyExtractResult, PyExtractSequence, PyExtractOptions, PyListOptions, PyLocateResults, PyLocatePosition, PyLocateOptions, PySufrMetadata, PySufBuilderArgs, PySuffixArray
 from sys import stdout
+
+TEST_FA = """> 1
+GATTACA
+> 2
+ACATTAG
+> 3
+ACTGACTG
+> 4
+GATTACA"""
 
 def test(
     input_file: str = "test.fa", 
@@ -19,7 +29,11 @@ def test(
         [(26, 9, '4', 1), (1, 10, '1', 1), (10, 11, '2', 2)], 
         [(20, 6, '3', 4), (16, 7, '3', 0)]
     ],
+    create_input_file = True,
 ):
+    if create_input_file:
+        with open(input_file, 'w') as f:
+            f.write(TEST_FA)
     # creating the suffix array
     sequence_file_data = py_read_sequence_file(
         input_file, 

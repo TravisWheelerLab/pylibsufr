@@ -411,7 +411,7 @@ impl PySuffixArray {
 }
 
 #[pymodule]
-fn _pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_read_sequence_file, m)?)?;
     m.add_class::<PyCountResult>()?;
     m.add_class::<PyCountOptions>()?;
