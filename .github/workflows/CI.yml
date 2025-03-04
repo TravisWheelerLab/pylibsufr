@@ -19,6 +19,15 @@ permissions:
   contents: read
 
 jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - uses: ArvindSinghRawat/Automatic-Semantic-versioning-semver-Tagging@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
   linux:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
