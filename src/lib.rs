@@ -33,7 +33,10 @@ impl PySequenceFileData {
 }
 
 #[pyfunction]
-#[pyo3(signature = (input, sequence_delimiter = 37))] // `ord('%') == 37`
+#[pyo3(signature = (
+    input, 
+    sequence_delimiter = 37, // = ord('%')
+))] 
 fn py_read_sequence_file(
     input: String,
     sequence_delimiter: u8,
@@ -52,7 +55,20 @@ pub struct PySufrBuilderArgs {
 #[pymethods]
 impl PySufrBuilderArgs {
     #[new]
-    #[pyo3(signature = (text, path, sequence_starts, sequence_names, low_memory = true, max_query_len = None, is_dna = false, allow_ambiguity = false, ignore_softmask = false, num_partitions = 16, seed_mask = None, random_seed = 42))]
+    #[pyo3(signature = (
+        text, 
+        path, 
+        sequence_starts, 
+        sequence_names, 
+        low_memory = true, 
+        max_query_len = None, 
+        is_dna = false, 
+        allow_ambiguity = false, 
+        ignore_softmask = false, 
+        num_partitions = 16, 
+        seed_mask = None, 
+        random_seed = 42,
+    ))]
     pub fn new(
         text: Vec<u8>,
         path: Option<String>,
@@ -95,7 +111,11 @@ pub struct PyCountOptions {
 #[pymethods]
 impl PyCountOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len = None, low_memory = false))]
+    #[pyo3(signature = (
+        queries, 
+        max_query_len = None, 
+        low_memory = false,
+    ))]
     pub fn new(
         queries: Vec<String>, 
         max_query_len: Option<usize>,
@@ -132,7 +152,13 @@ pub struct PyExtractOptions {
 #[pymethods]
 impl PyExtractOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len = None, low_memory = false, prefix_len = None, suffix_len = None))]
+    #[pyo3(signature = (
+        queries, 
+        max_query_len = None, 
+        low_memory = false, 
+        prefix_len = None, 
+        suffix_len = None,
+    ))]
     pub fn new(
         queries: Vec<String>, 
         max_query_len: Option<usize>,
@@ -196,7 +222,15 @@ pub struct PyListOptions {
 #[pymethods]
 impl PyListOptions {
     #[new]
-    #[pyo3(signature = (ranks, show_rank = false, show_suffix = false, show_lcp = false, len = None, number = None, output = None))]
+    #[pyo3(signature = (
+        ranks, 
+        show_rank = false, 
+        show_suffix = false, 
+        show_lcp = false, 
+        len = None, 
+        number = None, 
+        output = None,
+    ))]
     pub fn new(
         ranks: Vec<usize>,
         show_rank: bool,
@@ -229,7 +263,11 @@ pub struct PyLocateOptions {
 #[pymethods]
 impl PyLocateOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len = None, low_memory = false))]
+    #[pyo3(signature = (
+        queries, 
+        max_query_len = None, 
+        low_memory = false,
+    ))]
     pub fn new(
         queries: Vec<String>,
         max_query_len: Option<usize>,
@@ -331,6 +369,10 @@ impl PySuffixArray {
         Self::read(path, low_memory)
     }
     #[staticmethod]
+    #[pyo3(signature = (
+        filename,  
+        low_memory = false,
+    ))]
     pub fn read(filename: String, low_memory: bool) -> PyResult<PySuffixArray> {
         Ok(PySuffixArray {
             suffix_array: SuffixArray::read(&filename, low_memory).unwrap()
@@ -405,6 +447,10 @@ impl PySuffixArray {
             sort_type:          format!("{:?}", metadata.sort_type),
         })
     }
+    #[pyo3(signature = (
+        pos,
+        len = None,
+    ))]
     pub fn string_at(&mut self, pos: usize, len: Option<usize>) -> PyResult<String> {
         Ok(self.suffix_array.string_at(pos, len).unwrap())
     }
