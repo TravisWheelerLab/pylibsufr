@@ -33,7 +33,7 @@ impl PySequenceFileData {
 }
 
 #[pyfunction]
-#[pyo3(signature = (input, sequence_delimiter))]
+#[pyo3(signature = (input, sequence_delimiter = 37))] // `ord('%') == 37`
 fn py_read_sequence_file(
     input: String,
     sequence_delimiter: u8,
@@ -52,17 +52,17 @@ pub struct PySufrBuilderArgs {
 #[pymethods]
 impl PySufrBuilderArgs {
     #[new]
-    #[pyo3(signature = (text, path, low_memory, max_query_len, is_dna, allow_ambiguity, ignore_softmask, sequence_starts, sequence_names, num_partitions, seed_mask, random_seed))]
+    #[pyo3(signature = (text, path, sequence_starts, sequence_names, low_memory = true, max_query_len = None, is_dna = false, allow_ambiguity = false, ignore_softmask = false, num_partitions = 16, seed_mask = None, random_seed = 42))]
     pub fn new(
         text: Vec<u8>,
         path: Option<String>,
+        sequence_starts: Vec<usize>,
+        sequence_names: Vec<String>,
         low_memory: bool,
         max_query_len: Option<usize>,
         is_dna: bool,
         allow_ambiguity: bool,
         ignore_softmask: bool,
-        sequence_starts: Vec<usize>,
-        sequence_names: Vec<String>,
         num_partitions: usize,
         seed_mask: Option<String>,
         random_seed: u64,
@@ -95,7 +95,7 @@ pub struct PyCountOptions {
 #[pymethods]
 impl PyCountOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len, low_memory))]
+    #[pyo3(signature = (queries, max_query_len = None, low_memory = false))]
     pub fn new(
         queries: Vec<String>, 
         max_query_len: Option<usize>,
@@ -132,7 +132,7 @@ pub struct PyExtractOptions {
 #[pymethods]
 impl PyExtractOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len, low_memory, prefix_len, suffix_len))]
+    #[pyo3(signature = (queries, max_query_len = None, low_memory = false, prefix_len = None, suffix_len = None))]
     pub fn new(
         queries: Vec<String>, 
         max_query_len: Option<usize>,
@@ -196,7 +196,7 @@ pub struct PyListOptions {
 #[pymethods]
 impl PyListOptions {
     #[new]
-    #[pyo3(signature = (ranks, show_rank, show_suffix, show_lcp, len, number, output))]
+    #[pyo3(signature = (ranks, show_rank = false, show_suffix = false, show_lcp = false, len = None, number = None, output = None))]
     pub fn new(
         ranks: Vec<usize>,
         show_rank: bool,
@@ -229,7 +229,7 @@ pub struct PyLocateOptions {
 #[pymethods]
 impl PyLocateOptions {
     #[new]
-    #[pyo3(signature = (queries, max_query_len, low_memory))]
+    #[pyo3(signature = (queries, max_query_len = None, low_memory = false))]
     pub fn new(
         queries: Vec<String>,
         max_query_len: Option<usize>,
