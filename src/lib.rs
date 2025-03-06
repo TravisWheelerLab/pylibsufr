@@ -6,7 +6,7 @@ use libsufr::{
     },
     util::read_sequence_file,
 };
-use std::path::Path
+use std::path::Path;
 
 #[pyclass]
 pub struct PySequenceFileData {
