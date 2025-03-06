@@ -62,7 +62,7 @@ impl PySufrBuilderArgs {
         sequence_names, 
         low_memory = true, 
         max_query_len = None, 
-        is_dna = false, 
+        is_dna = true, 
         allow_ambiguity = false, 
         ignore_softmask = false, 
         num_partitions = 16, 
@@ -446,13 +446,6 @@ impl PySuffixArray {
             sequence_names:     metadata.sequence_names.clone(),
             sort_type:          format!("{:?}", metadata.sort_type),
         })
-    }
-    #[pyo3(signature = (
-        pos,
-        len = None,
-    ))]
-    pub fn string_at(&mut self, pos: usize, len: Option<usize>) -> PyResult<String> {
-        Ok(self.suffix_array.string_at(pos, len).unwrap())
     }
 }
 

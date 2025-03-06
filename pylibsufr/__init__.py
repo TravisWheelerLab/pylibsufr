@@ -2,7 +2,7 @@ from pylibsufr.pylibsufr import *
 #from pylibsufr import py_read_sequence_file, PyCountResult, PyCountOptions, PyExtractResult, PyExtractSequence, PyExtractOptions, PyListOptions, PyLocateResults, PyLocatePosition, PyLocateOptions, PySufrMetadata, PySufBuilderArgs, PySuffixArray
 from sys import stdout
 
-TEST_FA = """> 1
+_TEST_FA = """> 1
 GATTACA
 > 2
 ACATTAG
@@ -11,7 +11,11 @@ ACTGACTG
 > 4
 GATTACA"""
 
-def test(
+def _create_test_files(filepath = "test.fa", data = _TEST_FA):
+    with open(filepath, 'w') as f:
+        f.write(data)
+
+def _test(
     input_file: str = "test.fa", 
     output_file: str = "_test.sufr", 
     queries: list[str] = ["TT", "GATT", "ATTA", "ACTG"], 
@@ -29,11 +33,9 @@ def test(
         [(26, 9, '4', 1), (1, 10, '1', 1), (10, 11, '2', 2)], 
         [(20, 6, '3', 4), (16, 7, '3', 0)]
     ],
-    create_input_file = True,
 ):
-    if create_input_file:
-        with open(input_file, 'w') as f:
-            f.write(TEST_FA)
+    _create_test_files()
+
     # creating the suffix array
     sequence_file_data = py_read_sequence_file(
         input_file, 
@@ -41,38 +43,25 @@ def test(
     sufr_builder_args = PySufrBuilderArgs(
         sequence_file_data.seq(), 
         output_file, 
-        False, 
-        None, 
-        True, 
-        False, 
-        False, 
         sequence_file_data.start_positions(), 
         sequence_file_data.sequence_names(), 
-        16, 
-        None, 
-        42,
+        is_dna = True, 
     )
     suffix_array = PySuffixArray(sufr_builder_args)
 
-    # listing; only works if it's the first operation done to the suffix array?
+    # listing
     list_options = PyListOptions(
         [],
-        True,
-        True,
-        True,
-        None,
-        None,
-        list_output_file,
+        output = list_output_file,
     )
     suffix_array.list(list_options)
     with open(list_output_file, 'r') as f:
-        print(f"list_results: {f.read()}")
+        list1 = f.read()
+        print(f"list_results: {list1}")
 
     # counting
     count_options = PyCountOptions(
         queries,
-        None,
-        False,
     )
     count_results = suffix_array.count(count_options)
     count_data = [res.count for res in count_results]
@@ -81,11 +70,12 @@ def test(
     # extracting
     extract_options = PyExtractOptions(
         queries,
-        None,
-        False,
-        None,
-        None,
     )
+    extract_results = suffix_array.extract(extract_options)
+    extract_data = [[(seq.suffix, seq.rank, seq.sequence_name, seq.sequence_start, seq.sequence_range, seq.suffix_offset) for seq in res.sequences] for res in extract_results]
+    assert extract_data == expected_extract_data
+    
+    extract_options = PyExtractOptions(queries)
     extract_results = suffix_array.extract(extract_options)
     extract_data = [[(seq.suffix, seq.rank, seq.sequence_name, seq.sequence_start, seq.sequence_range, seq.suffix_offset) for seq in res.sequences] for res in extract_results]
     assert extract_data == expected_extract_data
@@ -93,8 +83,6 @@ def test(
     # locating
     locate_options = PyLocateOptions(
         queries,
-        None,
-        False,
     )
     locate_results = suffix_array.locate(locate_options)
     locate_data = [[(pos.suffix, pos.rank, pos.sequence_name, pos.sequence_position) for pos in res.positions] for res in locate_results]
@@ -107,16 +95,14 @@ def test(
         val = getattr(metadata, attr)
         print(f"{attr}: {val}")
 
-    # listing; only works if it's the first operation done to the suffix array?
+    # verify that other suffix array ops don't change list output.
     list_options = PyListOptions(
         [],
-        True,
-        True,
-        True,
-        None,
-        None,
-        list_output_file,
+        output = list_output_file,
     )
     suffix_array.list(list_options)
     with open(list_output_file, 'r') as f:
-        print(f"list_results: (second time) {f.read()}")
+        list2 = f.read()
+        print(f"list_results: (second time) {list2}")
+    
+    assert list1 == list2
