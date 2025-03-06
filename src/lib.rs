@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use libsufr::{
     suffix_array::SuffixArray,
     types::{
-        SufrBuilderArgs, SequenceFileData, SearchOptions, CountOptions, ExtractOptions, ListOptions, LocateOptions, SuffixSortType
+        SufrBuilderArgs, SequenceFileData, CountOptions, ExtractOptions, ListOptions, LocateOptions
     },
     util::read_sequence_file,
 };
