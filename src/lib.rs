@@ -6,11 +6,7 @@ use libsufr::{
     },
     util::read_sequence_file,
 };
-use chrono::{DateTime, Local};
-use std::{
-    path::Path,
-    ops::Range,
-};
+use std::path::Path
 
 #[pyclass]
 pub struct PySequenceFileData {
