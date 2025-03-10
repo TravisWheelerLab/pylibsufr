@@ -1,6 +1,18 @@
-from pylibsufr.pylibsufr import *
-#from pylibsufr import py_read_sequence_file, PyCountResult, PyCountOptions, PyExtractResult, PyExtractSequence, PyExtractOptions, PyListOptions, PyLocateResults, PyLocatePosition, PyLocateOptions, PySufrMetadata, PySufBuilderArgs, PySuffixArray
-from sys import stdout
+def _build_namespace():
+    import importlib
+    import pkgutil
+    module_name = "pylibsufr.pylibsufr"
+    renaming_rules = [("py_", ''),("Py", ''),]
+    internal_pylibsufr = importlib.import_module(module_name)
+    renamed_items = dict()
+    for name in internal_pylibsufr.__all__:
+        thing = internal_pylibsufr.__dict__[name]
+        for (s, t) in renaming_rules:
+            name = name.replace(s, t)
+        renamed_items[name] = thing
+    globals().update(renamed_items)
+
+_build_namespace()
 
 _TEST_FA = """> 1
 GATTACA
