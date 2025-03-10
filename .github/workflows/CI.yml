@@ -152,7 +152,7 @@ jobs:
     name: Release-test
     needs: [linux, musllinux, windows, macos, sdist]
     runs-on: ubuntu-latest
-    environment: testpypi
+    environment: pypi
     permissions:
       id-token: write
       contents: write
@@ -167,7 +167,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
           verbose: true
-#      - uses: pypa/gh-action-pypi-publish@release/v1
-#        with:
-#          skip-existing: true
-#          verbose: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          verbose: true
