@@ -1,4 +1,7 @@
-use pyo3::prelude::*;
+use pyo3::{
+    prelude::*,
+    exceptions::PyException,
+};
 use libsufr::{
     suffix_array::SuffixArray,
     types::{
@@ -363,6 +366,14 @@ impl PySuffixArray {
         let low_memory = args.sufr_builder_args.low_memory;
         let path = SuffixArray::write(args.sufr_builder_args).unwrap();
         Self::read(path, low_memory)
+    }
+    #[staticmethod]
+    #[pyo3(signature = (args))]
+    pub fn write(args: PySufrBuilderArgs) -> PyResult<String> {
+        Ok(SuffixArray::write(
+            args.sufr_builder_args)
+            .map_err(|e| PyErr::new::<PyException, _>(format!("Error in SuffixArray::write\n{}", e.to_string())))?
+        )
     }
     #[staticmethod]
     #[pyo3(signature = (

@@ -7,9 +7,9 @@ class TestSuffixArray(unittest.TestCase):
 
     def test_create(self):
         sequence_delimiter = ord('%')
-        seq_data = py_read_sequence_file("data/inputs/3.fa", sequence_delimiter)
+        seq_data = read_sequence_file("data/inputs/3.fa", sequence_delimiter)
         outfile = "3.sufr"
-        builder_args = PySufrBuilderArgs(
+        builder_args = SufrBuilderArgs(
             text = seq_data.seq(),
             path = outfile,
             sequence_starts = seq_data.start_positions(),
@@ -24,7 +24,7 @@ class TestSuffixArray(unittest.TestCase):
             random_seed = 42,
         )
 
-        suffix_array = PySuffixArray(builder_args)
+        suffix_array = SuffixArray(builder_args)
         meta = suffix_array.metadata()
         self.assertEqual(meta.text_len, 113)
         self.assertEqual(meta.len_suffixes, 101)
@@ -32,8 +32,8 @@ class TestSuffixArray(unittest.TestCase):
         os.remove(outfile)
 
     def test_count(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
-        count_args = PyCountOptions(
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
+        count_args = CountOptions(
             queries = ["AC", "GG", "CG"],
             max_query_len = None,
             low_memory = True
@@ -47,8 +47,8 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(res, expected)
 
     def test_extract(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
-        extract_args = PyExtractOptions(
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
+        extract_args = ExtractOptions(
             queries = ["CGT", "GG"],
             max_query_len = None,
             low_memory = True,
@@ -66,9 +66,9 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(res, expected)
 
     def test_list(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
         outfile = ".list.out"
-        list_opts = PyListOptions(
+        list_opts = ListOptions(
             ranks = [],
             show_rank = True,
             show_suffix = True,
@@ -96,8 +96,8 @@ class TestSuffixArray(unittest.TestCase):
         os.remove(outfile)
 
     def test_locate(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
-        locate_opts = PyLocateOptions(
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
+        locate_opts = LocateOptions(
             queries = ["ACG", "GGC"],
             max_query_len = None,
             low_memory = True,
@@ -113,7 +113,7 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(res, expected)
 
     def test_metadata(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
         meta = suffix_array.metadata()
         self.assertEqual(meta.filename, "data/inputs/1.sufr")
         self.assertEqual(meta.file_size, 172)
@@ -129,14 +129,37 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(meta.sort_type, "MaxQueryLen(0)")
         
     def test_read(self):
-        suffix_array = PySuffixArray.read("data/inputs/1.sufr", True)
+        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
+        
+    def test_write_and_read(self):
+        sequence_delimeter = ord('%')
+        seq_data = read_sequence_file("data/inputs/3.fa", sequence_delimeter)
+        outfile = "3.sufr"
+        builder_args = SufrBuilderArgs(
+            text = seq_data.seq(),
+            path = outfile,
+            sequence_starts = seq_data.start_positions(),
+            sequence_names= seq_data.sequence_names(),
+            low_memory = True,
+            max_query_len = None,
+            is_dna = True,
+            allow_ambiguity = False,
+            ignore_softmask = True,
+            num_partitions = 16,
+            seed_mask = None,
+            random_seed = 42,
+        )
+
+        outpath = SuffixArray.write(builder_args)
+        suffix_array = SuffixArray.read(outpath)
+        meta = suffix_array.metadata()
+        self.assertEqual(outpath, outfile)
+        self.assertEqual(meta.text_len, 113)
+        self.assertEqual(meta.len_suffixes, 101)
+        os.remove(outfile)
 
     def test_string_at(self):
         """deprecated."""
-        pass
-        
-    def test_write(self):
-        """to be implemented."""
         pass
 
 if __name__ == '__main__':
