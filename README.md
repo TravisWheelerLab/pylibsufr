@@ -52,7 +52,7 @@ assert outpath == outfile
 suffix_array = SuffixArray.read(outpath)
 ```
 
-Once a `SuffixArray` object has been created, it can be queried using the `*Option` types.
+Once a `SuffixArray` object has been created, it can be queried using the `*Options` types.
 
 ```
 # Count the occurrences of queries in the suffix array
