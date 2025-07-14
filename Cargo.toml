@@ -9,5 +9,5 @@ name = "pylibsufr"
 crate-type = ["cdylib"]
 
 [dependencies]
-libsufr = { git = "https://github.com/georgeglidden/sufr"} # 0.7.12
+libsufr = { git = "https://github.com/georgeglidden/sufr", rev = "b145101"} 
 pyo3 = "0.23.1"

@@ -5,7 +5,8 @@ use pyo3::{
 use libsufr::{
     suffix_array::SuffixArray,
     types::{
-        SufrBuilderArgs, SequenceFileData, CountOptions, ExtractOptions, ListOptions, LocateOptions
+        SufrBuilderArgs, SequenceFileData, BisectOptions, BisectResult, 
+        CountOptions, ExtractOptions, ListOptions, LocateOptions,
     },
     util::read_sequence_file,
 };
@@ -96,6 +97,68 @@ impl PySufrBuilderArgs {
                 num_partitions: num_partitions,
                 seed_mask: seed_mask,
                 random_seed: random_seed,
+            }
+        })
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyBisectResult {
+    bisect_result: BisectResult
+}
+
+#[pymethods]
+impl PyBisectResult {
+    #[getter]
+    fn get_query_num(&self) -> PyResult<usize> {
+        Ok(self.bisect_result.query_num)
+    }
+    #[getter]
+    fn get_query(&self) -> PyResult<String> {
+        Ok(self.bisect_result.query.clone())
+    }
+    #[getter]
+    fn get_count(&self) -> PyResult<usize> {
+        Ok(self.bisect_result.count)
+    }
+    #[getter]
+    fn get_first_position(&self) -> PyResult<usize> {
+        Ok(self.bisect_result.first_position)
+    }
+    #[getter]
+    fn get_last_position(&self) -> PyResult<usize> {
+        Ok(self.bisect_result.last_position)
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyBisectOptions {
+    bisect_options: BisectOptions
+}
+
+#[pymethods]
+impl PyBisectOptions {
+    #[new]
+    #[pyo3(signature = (
+        queries,
+        max_query_len = None,
+        low_memory = false,
+        prefix_result = None,
+    ))]
+    pub fn new(
+        queries: Vec<String>, 
+        max_query_len: Option<usize>,
+        low_memory: bool,
+        prefix_result: Option<PyBisectResult>,
+    ) -> PyResult<PyBisectOptions> {
+        Ok(PyBisectOptions {
+            bisect_options: BisectOptions {
+                queries: queries,
+                max_query_len: max_query_len,
+                low_memory: low_memory,
+                prefix_result: Some(prefix_result.unwrap().bisect_result),
             }
         })
     }
@@ -385,6 +448,16 @@ impl PySuffixArray {
             suffix_array: SuffixArray::read(&filename, low_memory).unwrap()
         })
     }
+    pub fn bisect(&mut self, args: PyBisectOptions) -> PyResult<Vec<PyBisectResult>> {
+        Ok(self.suffix_array.bisect(args.bisect_options)
+            .unwrap()
+            .iter()
+            .map(|bisect_result| PyBisectResult {
+                bisect_result: bisect_result.clone(),
+            })
+            .collect()
+        )
+    }
     pub fn count(&mut self, args: PyCountOptions) -> PyResult<Vec<PyCountResult>> {
         Ok(self.suffix_array.count(args.count_options)
             .unwrap()
@@ -459,6 +532,8 @@ impl PySuffixArray {
 #[pymodule]
 fn pylibsufr(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_read_sequence_file, m)?)?;
+    m.add_class::<PyBisectResult>()?;
+    m.add_class::<PyBisectOptions>()?;
     m.add_class::<PyCountResult>()?;
     m.add_class::<PyCountOptions>()?;
     m.add_class::<PyExtractResult>()?;
