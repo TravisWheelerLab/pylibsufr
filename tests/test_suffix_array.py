@@ -40,12 +40,12 @@ class TestSuffixArray(unittest.TestCase):
             low_memory = False,
             prefix_result = None,
         )
-        res_without_prefix = suffix_array.bisect(args_without_prefix)
+        res_without_prefix = [(r.query_num, r.query, r.count, r.first_position, r.last_position) for r in suffix_array.bisect(args_without_prefix)]
         expected_without_prefix = [
-            BisectResult(query_num = 0, query = "AC", count = 2, first_position = 1, last_position = 2),
-            BisectResult(query_num = 1, query = "CG", count = 2, first_position = 3, last_position = 4),
+            (0, "AC", 2, 1, 2),
+            (1, "CG", 2, 3, 4),
         ]
-        self.assert_equal(res_without_prefix, expected_without_prefix)
+        self.assertEqual(res_without_prefix, expected_without_prefix)
         # subtest 2 - a sequence of `bisect` queries wherein the first parametizes the prefix result of the second.
         prefix_args = BisectOptions(
             queries = ["A"],
@@ -53,19 +53,19 @@ class TestSuffixArray(unittest.TestCase):
             low_memory = False,
             prefix_result = None,
         )
-        prefix_res = suffix_array.bisect(prefix_args)
+        prefix_res = suffix_array.bisect(prefix_args)[0]
         args_with_prefix = BisectOptions(
             queries = ["AC", "CG"],
             max_query_len = None,
             low_memory = False,
             prefix_result = prefix_res,
         )
-        res_with_prefix = suffix_array.bisect(args_with_prefix)
+        res_with_prefix = [(r.query_num, r.query, r.count, r.first_position, r.last_position) for r in suffix_array.bisect(args_with_prefix)]
         expected_with_prefix = [
-            BisectResult(query_num = 0, query = "AC", count = 2, first_position = 1, last_position = 2),
-            BisectResult(query_num = 1, query = "CG", count = 0, first_position = 0, last_position = 0),
+            (0, "AC", 2, 1, 2),
+            (1, "CG", 0, 0, 0),
         ]
-        self.assert_equal(res_with_prefix, expected_with_prefix)
+        self.assertEqual(res_with_prefix, expected_with_prefix)
 
     def test_count(self):
         suffix_array = SuffixArray.read("data/inputs/1.sufr", True)

@@ -158,7 +158,10 @@ impl PyBisectOptions {
                 queries: queries,
                 max_query_len: max_query_len,
                 low_memory: low_memory,
-                prefix_result: Some(prefix_result.unwrap().bisect_result),
+                prefix_result: match prefix_result {
+                    Some(result)    => Some(result.bisect_result),
+                    _               => None,
+                }
             }
         })
     }
