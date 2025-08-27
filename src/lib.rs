@@ -115,7 +115,7 @@ impl PyBisectResult {
         Ok(self.bisect_result.query_num)
     }
     #[getter]
-    fn get_query(&self) -> PyResult<String> {
+    fn get_query(&self) -> PyResult<char> {
         Ok(self.bisect_result.query.clone())
     }
     #[getter]
@@ -129,6 +129,10 @@ impl PyBisectResult {
     #[getter]
     fn get_last_position(&self) -> PyResult<usize> {
         Ok(self.bisect_result.last_position)
+    }
+    #[getter]
+    fn get_lcp(&self) -> PyResult<usize> {
+        Ok(self.bisect_result.lcp)
     }
 }
 
@@ -148,7 +152,7 @@ impl PyBisectOptions {
         prefix_result = None,
     ))]
     pub fn new(
-        queries: Vec<String>, 
+        queries: Vec<char>, 
         max_query_len: Option<usize>,
         low_memory: bool,
         prefix_result: Option<PyBisectResult>,

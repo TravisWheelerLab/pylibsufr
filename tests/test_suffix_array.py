@@ -8,7 +8,7 @@ class TestSuffixArray(unittest.TestCase):
     def test_create(self):
         sequence_delimiter = ord('%')
         seq_data = read_sequence_file("data/inputs/3.fa", sequence_delimiter)
-        outfile = "3.sufr"
+        outfile = "data/inputs/3.sufr"
         builder_args = SufrBuilderArgs(
             text = seq_data.seq(),
             path = outfile,
@@ -29,43 +29,66 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(meta.text_len, 113)
         self.assertEqual(meta.len_suffixes, 101)
 
-        os.remove(outfile)
-    
     def test_bisect(self):
-        suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
-        # subtest 1 - a single `bisect` query without a prefix result.
-        args_without_prefix = BisectOptions(
-            queries = ["AC", "CG"],
+        suffix_array = SuffixArray.read("data/inputs/3.sufr", True)
+        # subtest 1 - a single query without a prefix result should search the whole array for suffixes beginning with A.
+        opt_sans_pfx = BisectOptions(
+            queries = ['A'],
             max_query_len = None,
             low_memory = False,
             prefix_result = None,
         )
-        res_without_prefix = [(r.query_num, r.query, r.count, r.first_position, r.last_position) for r in suffix_array.bisect(args_without_prefix)]
-        expected_without_prefix = [
-            (0, "AC", 2, 1, 2),
-            (1, "CG", 2, 3, 4),
+        
+        res_sans_pfx = suffix_array.bisect(opt_sans_pfx)
+        
+        observed_res = [
+            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
+            for r in res_sans_pfx
         ]
-        self.assertEqual(res_without_prefix, expected_without_prefix)
-        # subtest 2 - a sequence of `bisect` queries wherein the first parametizes the prefix result of the second.
-        prefix_args = BisectOptions(
-            queries = ["A"],
+        expected_res = [
+            (0, 'A', 27, 1, 27, 1),
+        ]
+        self.assertEqual(observed_res, expected_res)
+
+        # subtest 2 - recursively, search for suffixes AC and AT within the range of the first result.
+        opt_with_pfx = BisectOptions(
+            queries = ['C','T'],
             max_query_len = None,
             low_memory = False,
-            prefix_result = None,
+            prefix_result = res_sans_pfx[0],
         )
-        prefix_res = suffix_array.bisect(prefix_args)[0]
-        args_with_prefix = BisectOptions(
-            queries = ["AC", "CG"],
+        
+        res_with_pfx = suffix_array.bisect(opt_with_pfx)
+        
+        observed_res = [
+            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
+            for r in res_with_pfx
+        ]
+        expected_res = [
+            (0, 'C', 4, 12, 15, 2),
+            (1, 'T', 5, 23, 27, 2),
+        ]
+        self.assertEqual(observed_res, expected_res)
+
+        # subtest 3 - with secondary prefix, search for suffixes ACG, ACA.
+        opt_with_pfx2 = BisectOptions(
+            queries = ['G','A'],
             max_query_len = None,
             low_memory = False,
-            prefix_result = prefix_res,
+            prefix_result = res_with_pfx[0],
         )
-        res_with_prefix = [(r.query_num, r.query, r.count, r.first_position, r.last_position) for r in suffix_array.bisect(args_with_prefix)]
-        expected_with_prefix = [
-            (0, "AC", 2, 1, 2),
-            (1, "CG", 0, 0, 0),
+        
+        res_with_pfx2 = suffix_array.bisect(opt_with_pfx2)
+        
+        observed_res = [
+            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
+            for r in res_with_pfx2
         ]
-        self.assertEqual(res_with_prefix, expected_with_prefix)
+        expected_res = [
+            (0, 'G', 1, 13, 13, 3),
+            (1, 'A', 0, 0, 0, 0,),
+        ]
+        self.assertEqual(observed_res, expected_res)
 
     def test_count(self):
         suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
