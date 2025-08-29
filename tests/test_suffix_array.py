@@ -90,6 +90,27 @@ class TestSuffixArray(unittest.TestCase):
         ]
         self.assertEqual(observed_res, expected_res)
 
+    def test_bisect2(self):
+        suffix_array = SuffixArray.read("data/inputs/test.sufr", True)
+        full_query = "ILEKL"
+        counts = [64,10,2,1,0]
+        prefix_result = None
+        for i in range(len(full_query)):
+            query_chr = full_query[i]
+            query_pfx = full_query[:i + 1]
+            bisect_result = suffix_array.bisect(BisectOptions(queries=[query_chr], prefix_result=prefix_result))[0]
+            count_result = suffix_array.count(CountOptions([query_pfx]))[0]
+            # print(f"[{i}]:\n{query_pfx} => {count_result.count}\n{query_chr} => {bisect_result.count} {bisect_result.lcp}")
+            self.assertEqual(
+                count_result.count,
+                bisect_result.count)
+            self.assertEqual(
+                counts[i],
+                bisect_result.count)
+            if not(prefix_result is None):
+                self.assertLessEqual(bisect_result.count, prefix_result.count)
+            prefix_result = bisect_result
+
     def test_count(self):
         suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
         count_args = CountOptions(

@@ -1,6 +1,6 @@
 [package]
 name = "pylibsufr"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,5 +9,5 @@ name = "pylibsufr"
 crate-type = ["cdylib"]
 
 [dependencies]
-libsufr = { git = "https://github.com/georgeglidden/sufr", rev = "8768d2b"} 
+libsufr = { git = "https://github.com/georgeglidden/sufr", rev = "53468a7" } 
 pyo3 = "0.23.1"
