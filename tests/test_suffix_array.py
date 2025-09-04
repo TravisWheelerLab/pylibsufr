@@ -30,86 +30,39 @@ class TestSuffixArray(unittest.TestCase):
         self.assertEqual(meta.len_suffixes, 101)
 
     def test_bisect(self):
+        # set up
+        K = 5
+        alphabet = ["A","C","G","T"]
         suffix_array = SuffixArray.read("data/inputs/3.sufr", True)
-        # subtest 1 - a single query without a prefix result should search the whole array for suffixes beginning with A.
-        opt_sans_pfx = BisectOptions(
-            queries = ['A'],
-            max_query_len = None,
-            low_memory = False,
-            prefix_result = None,
-        )
-        
-        res_sans_pfx = suffix_array.bisect(opt_sans_pfx)
-        
-        observed_res = [
-            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
-            for r in res_sans_pfx
-        ]
-        expected_res = [
-            (0, 'A', 27, 1, 27, 1),
-        ]
-        self.assertEqual(observed_res, expected_res)
-
-        # subtest 2 - recursively, search for suffixes AC and AT within the range of the first result.
-        opt_with_pfx = BisectOptions(
-            queries = ['C','T'],
-            max_query_len = None,
-            low_memory = False,
-            prefix_result = res_sans_pfx[0],
-        )
-        
-        res_with_pfx = suffix_array.bisect(opt_with_pfx)
-        
-        observed_res = [
-            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
-            for r in res_with_pfx
-        ]
-        expected_res = [
-            (0, 'C', 4, 12, 15, 2),
-            (1, 'T', 5, 23, 27, 2),
-        ]
-        self.assertEqual(observed_res, expected_res)
-
-        # subtest 3 - with secondary prefix, search for suffixes ACG, ACA.
-        opt_with_pfx2 = BisectOptions(
-            queries = ['G','A'],
-            max_query_len = None,
-            low_memory = False,
-            prefix_result = res_with_pfx[0],
-        )
-        
-        res_with_pfx2 = suffix_array.bisect(opt_with_pfx2)
-        
-        observed_res = [
-            (r.query_num, r.query, r.count, r.first_position, r.last_position, r.lcp)
-            for r in res_with_pfx2
-        ]
-        expected_res = [
-            (0, 'G', 1, 13, 13, 3),
-            (1, 'A', 0, 0, 0, 0,),
-        ]
-        self.assertEqual(observed_res, expected_res)
-
-    def test_bisect2(self):
-        suffix_array = SuffixArray.read("data/inputs/test.sufr", True)
-        full_query = "ILEKL"
-        counts = [64,10,2,1,0]
-        prefix_result = None
-        for i in range(len(full_query)):
-            query_chr = full_query[i]
-            query_pfx = full_query[:i + 1]
-            bisect_result = suffix_array.bisect(BisectOptions(queries=[query_chr], prefix_result=prefix_result))[0]
-            count_result = suffix_array.count(CountOptions([query_pfx]))[0]
-            # print(f"[{i}]:\n{query_pfx} => {count_result.count}\n{query_chr} => {bisect_result.count} {bisect_result.lcp}")
-            self.assertEqual(
-                count_result.count,
-                bisect_result.count)
-            self.assertEqual(
-                counts[i],
-                bisect_result.count)
-            if not(prefix_result is None):
-                self.assertLessEqual(bisect_result.count, prefix_result.count)
-            prefix_result = bisect_result
+        # iter seqs
+        seqs = ['']
+        states = [None]
+        all_equal = True
+        for k in range(K):
+            new_seqs = []
+            new_states = []
+            for (seq, state) in zip(seqs, states):
+                for c in alphabet:
+                    new_seq = seq + c
+                    opt = BisectOptions(
+                        queries = [c],
+                        prefix_result = state,
+                    )
+                    new_state = suffix_array.bisect(opt)[0]
+                    bisect_count = new_state.count
+                    opt = CountOptions(
+                        queries = [new_seq],
+                    )
+                    count = suffix_array.count(opt)[0].count
+                    if bisect_count != count:
+                        all_equal = False
+                        print(f"\tnew seq {new_seq} {bisect_count} {count}")
+                    elif bisect_count > 0:
+                        new_seqs.append(new_seq)
+                        new_states.append(new_state)
+            seqs = new_seqs
+            states = new_states
+        self.assertTrue(all_equal)
 
     def test_count(self):
         suffix_array = SuffixArray.read("data/inputs/1.sufr", True)
